@@ -1,0 +1,14 @@
+
+# ioka group — Senior DevOps Assignment
+# Altinity ClickHouse Operator: 0.26.3
+#
+# Operator namespace: clickhouse-operator
+# Managed application namespace: sentry
+
+configs:
+  files:
+    config.yaml:
+      watch:
+        namespaces:
+          - sentry
+
