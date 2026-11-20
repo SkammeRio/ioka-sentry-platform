@@ -1,0 +1,32 @@
+=== DATE ===
+Fri Nov 20 16:06:34 UTC 2026
+=== MINIKUBE ===
+ioka-lab
+type: Control Plane
+host: Running
+kubelet: Running
+apiserver: Running
+kubeconfig: Configured
+
+=== NODES ===
+NAME       STATUS   ROLES           AGE   VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE                         KERNEL-VERSION                                CONTAINER-RUNTIME
+ioka-lab   Ready    control-plane   50m   v1.37.0   192.168.49.2   <none>        Debian GNU/Linux 12 (bookworm)   7.2.12-orbstack-00394-gbecdd6130068 (arm64)   containerd://2.3.4
+=== SYSTEM PODS ===
+NAME                               READY   STATUS    RESTARTS   AGE
+coredns-559f6c778d-lkrbv           1/1     Running   0          50m
+etcd-ioka-lab                      1/1     Running   0          50m
+kindnet-pwgsn                      1/1     Running   0          50m
+kube-apiserver-ioka-lab            1/1     Running   0          50m
+kube-controller-manager-ioka-lab   1/1     Running   0          50m
+kube-proxy-tj99k                   1/1     Running   0          50m
+kube-scheduler-ioka-lab            1/1     Running   0          50m
+storage-provisioner                1/1     Running   0          50m
+=== STORAGE ===
+NAME                 PROVISIONER                RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+standard (default)   k8s.io/minikube-hostpath   Delete          Immediate           false                  50m
+=== PVC TEST ===
+NAME                              STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/smoke-pvc   Bound    pvc-e4d9816a-50ac-4449-93ba-644c44759805   128Mi      RWO            standard       <unset>                 30m
+
+NAME            READY   STATUS    RESTARTS   AGE
+pod/pvc-smoke   1/1     Running   0          7m38s
