@@ -1,0 +1,38 @@
+
+# ioka group — Senior DevOps Test Assignment
+# Sentry Helm Chart: 36.1.0
+# Environment: local / Minikube
+#
+# Initial configuration for static Helm validation.
+# Not deployment-ready: external ClickHouse and
+# referenced Kubernetes Secrets are not created yet.
+
+user:
+  existingSecret: sentry-admin-password
+
+sentry:
+  existingSecret: sentry-system-secret
+
+externalClickhouse:
+  host: clickhouse-sentry-clickhouse.sentry.svc.cluster.local
+  tcpPort: 9000
+  httpPort: 8123
+  username: default
+  database: default
+  singleNode: true
+
+# Dependencies bundled with the Sentry chart.
+# Authentication, persistence and resource settings
+# will be reviewed before deployment.
+postgresql:
+  enabled: true
+
+redis:
+  enabled: true
+
+kafka:
+  enabled: true
+
+nginx:
+  enabled: true
+
