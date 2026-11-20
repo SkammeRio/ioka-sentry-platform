@@ -1,0 +1,33 @@
+apiVersion: v2
+appVersion: 26.11.0
+dependencies:
+- name: memcached
+  repository: oci://registry-1.docker.io/cloudpirates
+  version: 0.14.11
+- condition: redis.enabled
+  name: redis
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 17.11.3
+- condition: kafka.enabled
+  name: kafka
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 29.3.14
+- condition: postgresql.enabled
+  name: postgresql
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 12.5.1
+- condition: nginx.enabled
+  name: nginx
+  repository: oci://registry-1.docker.io/cloudpirates
+  version: 0.16.10
+description: A Helm chart for Kubernetes
+home: https://github.com/sentry-kubernetes/charts
+icon: https://raw.githubusercontent.com/sentry-kubernetes/charts/refs/heads/develop/docs/logo.png
+maintainers:
+- name: sentry-kubernetes
+name: sentry
+sources:
+- https://github.com/sentry-kubernetes/charts/tree/develop/charts/sentry
+type: application
+version: 36.1.0
+
