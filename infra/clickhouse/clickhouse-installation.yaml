@@ -1,0 +1,60 @@
+
+apiVersion: clickhouse.altinity.com/v1
+kind: ClickHouseInstallation
+
+metadata:
+  name: sentry-clickhouse
+  namespace: sentry
+  labels:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/part-of: ioka-sentry-platform
+    app.kubernetes.io/managed-by: altinity-operator
+
+spec:
+  configuration:
+    clusters:
+      - name: single-node
+        layout:
+          shardsCount: 1
+          replicasCount: 1
+
+    users:
+      default/networks/ip:
+        - "0.0.0.0/0"
+
+      default/password_sha256_hex:
+        valueFrom:
+          secretKeyRef:
+            name: sentry-clickhouse-auth
+            key: password_sha256_hex
+
+  templates:
+    podTemplates:
+      - name: clickhouse-single-node
+        spec:
+          containers:
+            - name: clickhouse
+              image: clickhouse/clickhouse-server:26.8.36.3
+
+              resources:
+                requests:
+                  cpu: "500m"
+                  memory: 1Gi
+                limits:
+                  cpu: "2"
+                  memory: 3Gi
+
+    volumeClaimTemplates:
+      - name: clickhouse-data
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 20Gi
+
+  defaults:
+    templates:
+      podTemplate: clickhouse-single-node
+      dataVolumeClaimTemplate: clickhouse-data
+
