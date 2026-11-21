@@ -8,18 +8,26 @@
 # referenced Kubernetes Secrets are not created yet.
 
 user:
+  create: true
+  email: admin@sentry.local
   existingSecret: sentry-admin-password
+  existingSecretKey: admin-password
 
 sentry:
   existingSecret: sentry-system-secret
+  existingSecretKey: system.secret-key
 
 externalClickhouse:
   host: clickhouse-sentry-clickhouse.sentry.svc.cluster.local
   tcpPort: 9000
   httpPort: 8123
-  username: default
+  username: sentry
   database: default
   singleNode: true
+  secure: false
+
+  existingSecret: sentry-clickhouse-client
+  existingSecretKey: clickhouse-password
 
 # Dependencies bundled with the Sentry chart.
 # Authentication, persistence and resource settings

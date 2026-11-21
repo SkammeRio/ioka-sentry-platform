@@ -18,15 +18,20 @@ spec:
           shardsCount: 1
           replicasCount: 1
 
+
     users:
-      default/networks/ip:
+      sentry/profile: default
+      sentry/quota: default
+
+      sentry/networks/ip:
         - "0.0.0.0/0"
 
-      default/password_sha256_hex:
+      sentry/password_sha256_hex:
         valueFrom:
           secretKeyRef:
             name: sentry-clickhouse-auth
             key: password_sha256_hex
+
 
   templates:
     podTemplates:
