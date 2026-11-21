@@ -90,3 +90,12 @@ kubeconform \
 
 echo "==> Validation completed successfully"
 
+echo "==> Validating PostgreSQL and Redis manifests"
+
+kubeconform \
+  -strict \
+  -kubernetes-version 1.37.0 \
+  -summary \
+  infra/datastores/postgresql.yaml \
+  infra/datastores/redis.yaml
+

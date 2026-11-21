@@ -1,0 +1,155 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ioka-redis
+  namespace: sentry
+  labels:
+    app: ioka-redis
+spec:
+  type: ClusterIP
+  selector:
+    app: ioka-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ioka-redis-headless
+  namespace: sentry
+spec:
+  clusterIP: None
+  selector:
+    app: ioka-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ioka-redis
+  namespace: sentry
+spec:
+  serviceName: ioka-redis-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ioka-redis
+  template:
+    metadata:
+      labels:
+        app: ioka-redis
+    spec:
+      terminationGracePeriodSeconds: 60
+
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        runAsNonRoot: true
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: redis
+          image: redis:7.4.12-bookworm
+          imagePullPolicy: IfNotPresent
+
+          command:
+            - /bin/sh
+            - -ec
+          args:
+            - |
+              umask 077
+              printf 'requirepass %s\n' "$REDIS_PASSWORD" \
+                > /run/redis/redis.conf
+
+              exec redis-server \
+                /run/redis/redis.conf \
+                --appendonly yes \
+                --appendfsync everysec \
+                --maxmemory 192mb \
+                --maxmemory-policy noeviction
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sentry-redis-auth
+                  key: redis-password
+
+          ports:
+            - name: redis
+              containerPort: 6379
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+
+          startupProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping | grep -qx PONG
+            periodSeconds: 5
+            failureThreshold: 20
+
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping | grep -qx PONG
+            periodSeconds: 10
+            timeoutSeconds: 3
+
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping | grep -qx PONG
+            periodSeconds: 20
+            timeoutSeconds: 3
+
+          volumeMounts:
+            - name: data
+              mountPath: /data
+
+            - name: runtime-config
+              mountPath: /run/redis
+
+      volumes:
+        - name: runtime-config
+          emptyDir:
+            medium: Memory
+
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: standard
+        resources:
+          requests:
+            storage: 1Gi
+

@@ -1,0 +1,176 @@
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ioka-postgresql-init
+  namespace: sentry
+data:
+  01-create-sentry-user.sh: |
+    #!/usr/bin/env bash
+    set -Eeuo pipefail
+
+    psql \
+      -v ON_ERROR_STOP=1 \
+      -v sentry_password="$SENTRY_DB_PASSWORD" \
+      --username "$POSTGRES_USER" \
+      --dbname "$POSTGRES_DB" <<'SQL'
+    CREATE ROLE sentry LOGIN PASSWORD :'sentry_password';
+    ALTER DATABASE sentry OWNER TO sentry;
+    SQL
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ioka-postgresql
+  namespace: sentry
+  labels:
+    app: ioka-postgresql
+spec:
+  type: ClusterIP
+  selector:
+    app: ioka-postgresql
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ioka-postgresql-headless
+  namespace: sentry
+spec:
+  clusterIP: None
+  selector:
+    app: ioka-postgresql
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: 5432
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ioka-postgresql
+  namespace: sentry
+spec:
+  serviceName: ioka-postgresql-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ioka-postgresql
+  template:
+    metadata:
+      labels:
+        app: ioka-postgresql
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        runAsNonRoot: true
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgresql
+          image: postgres:16.16-bookworm
+          imagePullPolicy: IfNotPresent
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+
+          ports:
+            - containerPort: 5432
+              name: postgresql
+
+          env:
+            - name: POSTGRES_USER
+              value: postgres
+
+            - name: POSTGRES_DB
+              value: sentry
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sentry-postgresql-admin
+                  key: password
+
+            - name: SENTRY_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sentry-postgresql-auth
+                  key: password
+
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+
+          startupProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U postgres -d sentry
+            periodSeconds: 5
+            failureThreshold: 24
+
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U postgres -d sentry
+            periodSeconds: 10
+            timeoutSeconds: 3
+
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U postgres -d sentry
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+
+      volumes:
+        - name: init-scripts
+          configMap:
+            name: ioka-postgresql-init
+            defaultMode: 0444
+
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: standard
+        resources:
+          requests:
+            storage: 3Gi
+
