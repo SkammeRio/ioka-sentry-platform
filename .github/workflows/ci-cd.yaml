@@ -1,0 +1,113 @@
+
+name: IOKA Sentry Platform CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  test:
+    name: Test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check Bash syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for script in scripts/*.sh; do
+            echo "Checking $script"
+            bash -n "$script"
+          done
+
+      - name: Check Git whitespace
+        run: git diff-tree --check HEAD^ HEAD
+        if: github.event_name != 'pull_request'
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Scan IaC misconfigurations
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          format: table
+          exit-code: '1'
+          severity: CRITICAL,HIGH
+
+      - name: Scan repository secrets
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: secret
+          format: table
+          exit-code: '1'
+          skip-setup-trivy: true
+
+  validate:
+    name: Validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    needs:
+      - test
+      - security
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install Helm
+        uses: azure/setup-helm@v5.0.1
+        with:
+          version: v4.3.0
+
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: false
+
+      - name: Install Kubeconform
+        shell: bash
+        run: |
+          go install \
+            github.com/yannh/kubeconform/cmd/kubeconform@v0.8.0
+
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Run infrastructure validation
+        run: bash scripts/ci-validate.sh
+
