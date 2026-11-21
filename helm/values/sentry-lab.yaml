@@ -32,11 +32,32 @@ externalClickhouse:
 # Dependencies bundled with the Sentry chart.
 # Authentication, persistence and resource settings
 # will be reviewed before deployment.
-postgresql:
-  enabled: true
 
+
+# External PostgreSQL
+postgresql:
+  enabled: false
+
+externalPostgresql:
+  host: ioka-postgresql.sentry.svc.cluster.local
+  port: 5432
+  username: sentry
+  database: sentry
+  existingSecret: sentry-postgresql-auth
+  existingSecretKeys:
+    password: password
+
+# External Redis
 redis:
-  enabled: true
+  enabled: false
+
+externalRedis:
+  host: ioka-redis.sentry.svc.cluster.local
+  port: 6379
+  db: 0
+  ssl: false
+  existingSecret: sentry-redis-auth
+  existingSecretKey: redis-password
 
 kafka:
   enabled: true
