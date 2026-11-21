@@ -135,3 +135,60 @@ jobs:
 
       - name: Run infrastructure validation
         run: bash scripts/ci-validate.sh
+
+
+  deploy:
+    name: Deploy
+
+    if: >-
+      ${{
+        github.event_name == 'workflow_dispatch' &&
+        github.ref == 'refs/heads/main'
+      }}
+
+    needs:
+      - test
+      - security
+      - validate
+
+    runs-on:
+      - self-hosted
+      - linux
+      - ioka-deploy
+
+    environment: ioka-staging
+
+    timeout-minutes: 60
+
+    concurrency:
+      group: ioka-sentry-staging
+      cancel-in-progress: false
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate and prepare Helm charts
+        shell: bash
+        run: ./scripts/ci-validate.sh
+
+      - name: Verify deployment plan
+        shell: bash
+        env:
+          KCTX: ioka-staging
+          NAMESPACE: sentry
+        run: ./scripts/deploy-sentry.sh --plan
+
+      - name: Deploy Sentry
+        shell: bash
+        env:
+          KCTX: ioka-staging
+          NAMESPACE: sentry
+          DEPLOY_APPROVED: ioka-sentry/ioka-staging
+        run: ./scripts/deploy-sentry.sh --apply
+
