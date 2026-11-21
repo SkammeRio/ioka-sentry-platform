@@ -29,6 +29,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Check Bash syntax
         shell: bash
@@ -41,8 +42,30 @@ jobs:
           done
 
       - name: Check Git whitespace
-        run: git diff-tree --check HEAD^ HEAD
-        if: github.event_name != 'pull_request'
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            echo "Checking Pull Request changes"
+            git diff --check "origin/$BASE_REF...HEAD"
+
+          elif [[ "$EVENT_NAME" == "push" ]] \
+            && [[ -n "$BEFORE_SHA" ]] \
+            && [[ ! "$BEFORE_SHA" =~ ^0+$ ]] \
+            && git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+
+            echo "Checking pushed commits"
+            git diff --check "$BEFORE_SHA" HEAD
+
+          else
+            echo "Checking latest commit"
+            git show --check --format= HEAD
+          fi
 
   security:
     name: Security Scan
