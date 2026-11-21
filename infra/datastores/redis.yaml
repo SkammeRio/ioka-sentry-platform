@@ -80,6 +80,7 @@ spec:
 
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -137,10 +138,16 @@ spec:
             - name: runtime-config
               mountPath: /run/redis
 
+            - name: redis-tmp
+              mountPath: /tmp
+
       volumes:
         - name: runtime-config
           emptyDir:
             medium: Memory
+
+        - name: redis-tmp
+          emptyDir: {}
 
   volumeClaimTemplates:
     - metadata:

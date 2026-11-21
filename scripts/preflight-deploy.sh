@@ -196,4 +196,3 @@ echo "PASS: Sentry deployment preflight completed"
 echo "Note: storage free space, pod scheduling,"
 echo "image pulls and application connectivity still"
 echo "require separate runtime verification."
-

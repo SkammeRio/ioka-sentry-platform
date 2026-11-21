@@ -81,6 +81,8 @@ jobs:
       - name: Scan IaC misconfigurations
         uses: aquasecurity/trivy-action@v0.36.0
         with:
+          version: v0.76.2
+          trivyignores: .trivyignore.yaml
           scan-type: config
           scan-ref: .
           format: table
@@ -133,4 +135,3 @@ jobs:
 
       - name: Run infrastructure validation
         run: bash scripts/ci-validate.sh
-

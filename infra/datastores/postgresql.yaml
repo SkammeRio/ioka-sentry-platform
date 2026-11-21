@@ -83,6 +83,7 @@ spec:
 
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -157,11 +158,23 @@ spec:
               mountPath: /docker-entrypoint-initdb.d
               readOnly: true
 
+            - name: postgres-run
+              mountPath: /run/postgresql
+
+            - name: postgres-tmp
+              mountPath: /tmp
+
       volumes:
         - name: init-scripts
           configMap:
             name: ioka-postgresql-init
             defaultMode: 0444
+
+        - name: postgres-run
+          emptyDir: {}
+
+        - name: postgres-tmp
+          emptyDir: {}
 
   volumeClaimTemplates:
     - metadata:

@@ -478,4 +478,3 @@ Record for every incident:
 - https://kubernetes.io/docs/tasks/debug/debug-cluster/
 - https://kb.altinity.com/altinity-kb-kubernetes/
 - https://docs.sentry.io/platforms/javascript/session-replay/
-

@@ -1,0 +1,13 @@
+
+misconfigurations:
+  - id: KSV-0109
+    paths:
+      - infra/datastores/postgresql.yaml
+    expired_at: 2027-02-21
+    statement: >-
+      Reviewed false positive. The PostgreSQL initialization
+      ConfigMap contains a script that references SENTRY_DB_PASSWORD.
+      The actual credential is generated separately and supplied
+      through a Kubernetes Secret. No plaintext password is
+      stored in the ConfigMap or the repository.
+
