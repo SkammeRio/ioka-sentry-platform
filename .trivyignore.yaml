@@ -10,4 +10,3 @@ misconfigurations:
       The actual credential is generated separately and supplied
       through a Kubernetes Secret. No plaintext password is
       stored in the ConfigMap or the repository.
-
