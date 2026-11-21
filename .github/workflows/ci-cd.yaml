@@ -191,4 +191,3 @@ jobs:
           NAMESPACE: sentry
           DEPLOY_APPROVED: ioka-sentry/ioka-staging
         run: ./scripts/deploy-sentry.sh --apply
-

@@ -157,4 +157,3 @@ kubectl --context="$KCTX" \
 echo
 echo "PASS: Helm deployment completed"
 echo "Functional Sentry smoke tests are still required."
-
