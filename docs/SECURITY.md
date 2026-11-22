@@ -1,108 +1,28 @@
+# Security Architecture and Known Limitations
 
-# Security Architecture
+## Credentials
 
-## Secret Management
+All Sentry application/database credentials are generated into Kubernetes Secrets via `scripts/bootstrap-secrets.sh` and `scripts/bootstrap-external-db-secrets.sh`; passwords are not placed directly into repository manifests. `sentry-clickhouse-auth` contains the ClickHouse password SHA-256 digest and `sentry-clickhouse-client` contains the actual client password. The PostgreSQL init ConfigMap references a password received from a Kubernetes Secret, not a literal password.
 
-Application and database credentials are stored
-outside Git as Kubernetes Secrets.
+`KSV-0109` in `.trivyignore.yaml` is a documented, time-limited exception for that PostgreSQL init script only. It is **not** a blanket exemption from secret scanning. Kubernetes Secrets do not provide automatic rotation, backup, or encryption at rest. These features are not implemented here.
 
-The bootstrap script creates separate credentials
-for Sentry and ClickHouse.
+## NetworkPolicy
 
-The bootstrap procedure is intended for local
-development. Production requires an external
-secret-management strategy and secure backup
-and rotation procedures.
+`infra/networking/clickhouse-ingress.yaml` describes intended ClickHouse ingress on TCP 8123/9000 from Sentry workloads and the Operator namespace, plus TCP 9009 between ClickHouse Pods.
 
-## Network Isolation
+**Enforcement is not verified:** the lab uses Kindnet, which does not enforce Kubernetes NetworkPolicy. This file demonstrates intended policy, not proven isolation. Use a policy-enforcing CNI (e.g., Calico) and connectivity tests before treating it as an active control.
 
-A dedicated NetworkPolicy is defined for ClickHouse.
+## Container images and CI
 
-Allowed ingress:
-- Sentry application workloads: TCP 8123, 9000
-- ClickHouse Operator namespace: TCP 8123, 9000
-- ClickHouse peers: TCP 9009
+The Sentry chart's bundled legacy PostgreSQL and Redis were disabled in `helm/values/sentry-lab.yaml`; separate maintained PostgreSQL/Redis images are defined in `infra/datastores`. The chart version is pinned; not all images are digest-pinned, and the repository's historical image inventory must be regenerated whenever chart overrides change.
 
-The current Minikube cluster uses Kindnet, which
-does not enforce Kubernetes NetworkPolicy.
+The CI `Security Scan` job checks **IaC misconfigurations and repository secrets** with Trivy. It does **not** enforce image-vulnerability scanning for all rendered images; see `SECURITY_AUDIT.md` for the partial historical assessment. Do not equate a green CI result with a complete vulnerability clearance.
 
-Therefore, this policy has only been validated
-statically. Network isolation must be tested on
-a cluster using Calico or another supported CNI.
+## Runtime and production limitations
 
-## Current Limitations
-
-- Full Sentry is not deployed yet.
-- NetworkPolicy enforcement is not verified.
-- ClickHouse TLS is not configured.
-- Secret backup and rotation are not implemented.
-- The local Minikube cluster is not production HA.
-```
-
-## Шаг 7. Сохраняем всё в Git
-
-Выполни:
-
-```bash
-git diff --check
-```
-
-Добавь файлы:
-
-```bash
-git add \
-  infra/clickhouse/clickhouse-installation.yaml \
-  infra/networking/clickhouse-ingress.yaml \
-  docs/SECURITY.md
-```
-
-Проверь:
-
-```bash
-git diff --cached --stat
-git diff --cached --check
-```
-
-Создай коммит:
-
-```bash
-git commit -m "feat(security): define ClickHouse network isolation policy"
-```
-
-Проверь историю:
-
-```bash
-GIT_PAGER=cat git log -5 --oneline
-git status -sb
-```
-
----
-
-## Что прислать после выполнения
-
-```bash
-kubectl --context=ioka-lab -n sentry \
-  get secret \
-  sentry-clickhouse-auth \
-  sentry-clickhouse-client \
-  sentry-system-secret \
-  sentry-admin-password
-
-kubectl --context=ioka-lab apply \
-  --dry-run=server \
-  -f infra/clickhouse/clickhouse-installation.yaml
-
-kubectl --context=ioka-lab apply \
-  --dry-run=server \
-  -f infra/networking/clickhouse-ingress.yaml
-
-grep -n -m 5 \
-  'app.kubernetes.io/instance:' \
-  .cache/helm/sentry-rendered.yaml
-
-GIT_PAGER=cat git log -5 --oneline
-```
-
-После этих проверок перейдём к следующей важной части — **CI/CD через GitHub Actions** с обязательными стадиями Test → Security Scan → Validate → Deploy.
-
-У нас уже накопилось достаточно IaC-кода, чтобы внедрять не формальный pipeline, а реальные автоматизированные проверки. При этом полноценный deployment Sentry и проверка фактической сетевой изоляции останутся отдельными критериями приёмки, пока не будет подготовлен кластер с достаточными ресурсами и поддержкой NetworkPolicy.
+- Full Sentry and actual `Deploy` job have not been executed in this lab.
+- ClickHouse TLS is disabled in the lab values; transport encryption is not verified.
+- PostgreSQL, Redis and ClickHouse use single-instance storage and are not HA.
+- Disk backup, recovery testing and credential rotation are not implemented.
+- Resource admission checks do not guarantee Pod schedulability, capacity, or storage headroom.
+- A self-hosted GitHub runner needs careful isolation, minimal Kubernetes RBAC, and protected deployment permissions before real use.

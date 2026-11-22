@@ -3,9 +3,9 @@
 # Sentry Helm Chart: 36.1.0
 # Environment: local / Minikube
 #
-# Initial configuration for static Helm validation.
-# Not deployment-ready: external ClickHouse and
-# referenced Kubernetes Secrets are not created yet.
+# Lab overrides: requires external ClickHouse, database StatefulSets
+# and Kubernetes Secrets to be provisioned before --apply.
+# Full Sentry runtime deployment has not been verified.
 
 user:
   create: true
@@ -29,10 +29,8 @@ externalClickhouse:
   existingSecret: sentry-clickhouse-client
   existingSecretKey: clickhouse-password
 
-# Dependencies bundled with the Sentry chart.
-# Authentication, persistence and resource settings
-# will be reviewed before deployment.
-
+# Chart-managed PostgreSQL and Redis are disabled below.
+# Other chart dependencies still require resource/capacity review.
 
 # External PostgreSQL
 postgresql:

@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 set -Eeuo pipefail
 umask 077
@@ -27,7 +26,7 @@ NAMESPACE="${NAMESPACE:-sentry}"
 RELEASE="${RELEASE:-ioka-sentry}"
 CHI_NAME="${CHI_NAME:-sentry-clickhouse}"
 
-CHART="".cache/helm/sentry-36.1.0.tgz""
+CHART=".cache/helm/sentry-36.1.0.tgz"
 VALUES="helm/values/sentry-lab.yaml"
 CHI_MANIFEST="infra/clickhouse/clickhouse-installation.yaml"
 NETWORK_POLICY="infra/networking/clickhouse-ingress.yaml"

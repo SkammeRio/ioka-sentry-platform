@@ -1,99 +1,29 @@
+# Container Image Security Audit (Partial Historical Assessment)
 
-# Container Image Security Audit
+## Scope and method
 
-## Scope
+Scan date: 2026-11-21. Tool: Trivy 0.76.2; platform: `linux/arm64`; severities HIGH and CRITICAL. Four images from the **historical** Helm-rendered inventory were scanned. This inventory predates the removal of the chart-managed PostgreSQL and Redis workloads, so findings must not be interpreted as a current full-deployment SBOM or a scan of all current images.
 
-Project: IOKA Sentry Platform
-
-Scan date: 2026-11-21
-Scanner: Trivy 0.76.2
-Target architecture: linux/arm64
-Severity filter: HIGH, CRITICAL
-
-This audit covers four container images from the
-Sentry infrastructure.
-
-## Findings
-
-| Component | Critical | High | Fix available |
+| Historical image/component | Critical | High | Fix available |
 |---|---:|---:|---:|
 | BusyBox 1.38.0 | 0 | 0 | 0 |
 | Sentry Relay 26.11.0 | 0 | 0 | 0 |
-| PostgreSQL (Bitnami Legacy) | 13 | 215 | 83 |
-| Redis (Bitnami Legacy) | 13 | 212 | 95 |
-| Total | 26 | 440 | 178 |
+| Bitnami Legacy PostgreSQL | 13 | 215 | 83 |
+| Bitnami Legacy Redis | 13 | 212 | 95 |
+| **Total (findings, not unique CVEs)** | **26** | **440** | **178** |
 
-Counts represent vulnerability findings, not
-necessarily unique CVE identifiers.
+The Bitnami Legacy images are unsupported. In the subsequently revised lab configuration, chart-managed `postgresql.enabled` and `redis.enabled` are disabled and separate `postgres:16.16-bookworm` and `redis:7.4.12-bookworm` StatefulSets have been introduced. Runtime startup/persistence of those replacement services was observed. **No complete post-remediation vulnerability scan covering every rendered image was evidenced in this archive.** A historical inventory also contained the mutable `bitnami/kubectl:latest` tag; re-render and inspect the current image list rather than assume it remains present.
 
-## Identified Risks
+## Security control coverage
 
-### Unsupported container images
+The GitHub Actions `Security Scan` stage runs Trivy misconfiguration checks and repository secret scanning. Its successful execution **does not** show that full container image vulnerability scanning passed. Image vulnerabilities, provenance, immutable digests, and supply-chain policy remain open review items.
 
-PostgreSQL and Redis use archived Bitnami Legacy
-images that no longer receive regular security
-updates.
+Before production deployment:
 
-Trivy also reported that the Debian 11.7-based
-images are no longer supported by the distribution
-according to its vulnerability database.
+1. Regenerate the current image inventory from pinned, rendered charts plus external datastore manifests.
+2. Scan **all** deployable images for the target architecture with a refreshed database.
+3. Review CRITICAL/HIGH findings, remediation options and narrowly approved exceptions.
+4. Pin or verify immutable digests for deployed images as appropriate.
+5. Retest application connectivity, PVC persistence and migrations after image updates.
 
-This reduces confidence in the completeness of
-vulnerability detection.
-
-### Mutable image tags
-
-The image inventory includes:
-
-- bitnami/kubectl:latest
-
-This tag is not immutable and must be replaced
-with an explicitly approved version or digest.
-
-## Remediation Strategy
-
-1. Replace unsupported PostgreSQL and Redis
-   images with maintained alternatives.
-
-2. Prefer independently managed database and
-   caching components over replacing Bitnami
-   container images inside incompatible charts.
-
-3. Pin container images to approved versions
-   and immutable digests.
-
-4. Validate runtime compatibility, persistence,
-   authentication and application connectivity.
-
-5. Repeat Trivy scanning after remediation.
-
-6. Enforce vulnerability and unsupported-image
-   policies before allowing deployment.
-
-## CI/CD Security Gate
-
-The existing CI pipeline performs IaC and
-secret scanning.
-
-Container image vulnerability enforcement
-has not yet been implemented.
-
-The current successful CI result therefore
-does not represent a successful full image
-security assessment.
-
-Deployment approval must remain blocked until
-the required image security checks pass or
-documented risk exceptions are approved.
-
-## Limitations
-
-Only four of the fifteen inventoried images
-have been scanned in this assessment.
-
-Findings are based on the vulnerability
-database available on the scan date.
-
-No production deployment or runtime
-verification has been performed.
-
+This document is a bounded audit record, not certification of vulnerability-free infrastructure.
